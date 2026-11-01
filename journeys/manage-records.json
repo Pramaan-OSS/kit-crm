@@ -1,0 +1,64 @@
+{
+  "items": [
+    {
+      "id": "manage-records",
+      "label": "Adds, edits and searches internal notes.",
+      "steps": [
+        {
+          "enterAs": "owner"
+        },
+        {
+          "goto": "/team"
+        },
+        {
+          "fill": "Workspace name",
+          "value": "Studio team"
+        },
+        {
+          "click": "Create workspace"
+        },
+        {
+          "expectText": "Studio team"
+        },
+        {
+          "goto": "/records/note"
+        },
+        {
+          "click": "Add record"
+        },
+        {
+          "fill": "Title",
+          "value": "Office plan"
+        },
+        {
+          "fill": "Notes",
+          "value": "Meet on the first floor"
+        },
+        {
+          "click": "Save record"
+        },
+        {
+          "expectText": "Office plan"
+        },
+        {
+          "click": "Edit Office plan"
+        },
+        {
+          "fill": "Title",
+          "value": "Team plan"
+        },
+        {
+          "click": "Save record"
+        },
+        {
+          "fill": "Search notes",
+          "value": "Team plan"
+        },
+        {
+          "expectText": "Meet on the first floor"
+        }
+      ]
+    }
+  ],
+  "names": {}
+}

@@ -1,0 +1,372 @@
+import { randomUUID } from "node:crypto";
+import { Pool } from "pg";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { csvCell, listRecords, saveRecord } from "./admin-table/records";
+import { getContacts, updateContacts } from "./pramaan/contacts";
+import { checkRevision, createStore, documentJson, requestUser, text } from "./pramaan/crm-data";
+import { getPipeline, updatePipeline } from "./pramaan/pipeline";
+import { membership, workspaceAction } from "./workspace";
+
+if (!process.env.DATABASE_URL)
+  throw new Error("Postgres tests require DATABASE_URL; the gate must supply its test database.");
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 8 });
+const store = createStore(pool);
+const users = Array.from({ length: 6 }, () => randomUUID());
+const own = users[0]!;
+const editor = users[1]!;
+const viewer = users[2]!;
+const other = users[3]!;
+const stranger = users[4]!;
+const joiner = users[5]!;
+let joinerOrg = "";
+const email = (id: string) => `${id}@example.test`;
+let org: string;
+let org2: string;
+const as = <T>(id: string, f: () => Promise<T>) => requestUser.run(id, f);
+beforeAll(async () => {
+  for (const id of users)
+    await pool.query(
+      "INSERT INTO app_users(id,email,password_hash,role) VALUES($1,$2,'not-a-password','member')",
+      [id, email(id)],
+    );
+  await workspaceAction(pool, own, { action: "create", name: "First team" });
+  await workspaceAction(pool, other, { action: "create", name: "Other team" });
+  org = (await membership(pool, own))!.org_id;
+  org2 = (await membership(pool, other))!.org_id;
+  await workspaceAction(pool, own, { action: "grant", email: email(editor), role: "editor" });
+  await workspaceAction(pool, own, { action: "grant", email: email(viewer), role: "viewer" });
+});
+afterAll(async () => {
+  for (const id of [org, org2, joinerOrg].filter(Boolean)) {
+    for (const table of ["crm_contacts", "crm_pipeline", "crm_records"])
+      await pool.query(`DELETE FROM ${table} WHERE scope=$1`, [id]);
+    await pool.query("DELETE FROM crm_members WHERE org_id=$1", [id]);
+    await pool.query("DELETE FROM crm_organisations WHERE id=$1", [id]);
+  }
+  await pool.query("DELETE FROM app_users WHERE id=ANY($1::uuid[])", [users]);
+  await pool.end();
+});
+describe("validation", () => {
+  it("rejects stale and missing revisions", () => {
+    expect(() => checkRevision({ revision: 2 }, 1, "contact")).toThrow(/changed/);
+    expect(() => checkRevision({ revision: 0 }, undefined, "card")).toThrow();
+  });
+  it("bounds stored bytes, including multibyte text", () => {
+    expect(() => documentJson({ value: "漢".repeat(1500000) })).toThrow(/full/);
+  });
+  it("validates names and safe exports", () => {
+    expect(() => text(" ", "a name")).toThrow();
+    expect(() => text("toolong", "a name", 2)).toThrow();
+    expect(csvCell(" =SUM(A1)")).toBe('"\' =SUM(A1)"');
+    expect(csvCell('a"b')).toBe('"a""b"');
+  });
+});
+describe("real organisation permissions", () => {
+  it("shares contacts with editors and viewers while isolating another organisation", async () => {
+    await as(editor, () =>
+      updateContacts(org, { action: "save", kind: "company", name: "Shared company", email: "" }),
+    );
+    expect((await as(viewer, () => getContacts(org))).contacts).toHaveLength(1);
+    expect((await as(other, () => getContacts(org2))).contacts).toHaveLength(0);
+    await expect(as(other, () => getContacts(org))).rejects.toMatchObject({ status: 403 });
+    await expect(as(stranger, () => getContacts(org))).rejects.toMatchObject({ status: 403 });
+    await expect(
+      as(viewer, () => updateContacts(org, { action: "save", kind: "person", name: "Denied" })),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+  it("supports company links, notes, history, stale edits and deletion", async () => {
+    const company = (await as(own, () => getContacts(org))).contacts[0]!;
+    await as(own, () =>
+      updateContacts(org, { action: "save", kind: "person", name: "Sam", companyId: company.id }),
+    );
+    const person = (await as(editor, () => getContacts(org))).contacts.find(
+      (c) => c.name === "Sam",
+    )!;
+    await as(editor, () =>
+      updateContacts(org, { action: "note", id: person.id, revision: 0, note: "Call next week" }),
+    );
+    await expect(
+      as(editor, () =>
+        updateContacts(org, { action: "note", id: person.id, revision: 0, note: "Stale" }),
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    await as(own, () =>
+      updateContacts(org, { action: "delete", id: company.id, revision: company.revision }),
+    );
+    const updated = (await as(viewer, () => getContacts(org))).contacts[0]!;
+    expect(updated.companyId).toBe("");
+    expect(updated.notes[0]?.text).toBe("Call next week");
+    expect(updated.history[0]?.text).toBe("Company link removed");
+  });
+  it("checks team management and cannot cross organisation boundaries", async () => {
+    await expect(
+      workspaceAction(pool, editor, { action: "grant", email: email(stranger), role: "editor" }),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      workspaceAction(pool, own, { action: "grant", email: email(other), role: "editor" }),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      workspaceAction(pool, own, { action: "grant", email: email(editor), role: "manager" }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(workspaceAction(pool, own, { action: "remove", id: own })).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+  it("stops at 50 people in a workspace", async () => {
+    const count = async () =>
+      Number(
+        (await pool.query("SELECT count(*) FROM crm_members WHERE org_id=$1", [org])).rows[0].count,
+      );
+    const extra = await pool.query(
+      `INSERT INTO app_users(id,email,password_hash,role) SELECT gen_random_uuid(), gen_random_uuid()||'@example.test','not-a-password','member' FROM generate_series(1,$1::int) RETURNING id`,
+      [50 - (await count())],
+    );
+    const ids = extra.rows.map((r) => r.id);
+    try {
+      await pool.query(
+        "INSERT INTO crm_members(org_id,user_id,role) SELECT $1, unnest($2::uuid[]), 'viewer'",
+        [org, ids],
+      );
+      expect(await count()).toBe(50);
+      await expect(
+        workspaceAction(pool, own, { action: "grant", email: email(stranger), role: "viewer" }),
+      ).rejects.toMatchObject({ status: 409, message: expect.stringMatching(/50 people/) });
+    } finally {
+      await pool.query("DELETE FROM crm_members WHERE user_id=ANY($1::uuid[])", [ids]);
+      await pool.query("DELETE FROM app_users WHERE id=ANY($1::uuid[])", [ids]);
+    }
+  });
+  it("refuses a record edit made from an old copy", async () => {
+    await as(editor, () => saveRecord(org, { action: "save", title: "Revised", notes: "one" }));
+    const record = (await as(editor, () => listRecords(org))).records.find(
+      (r) => r.title === "Revised",
+    )!;
+    const edit = (notes: string) =>
+      as(editor, () =>
+        saveRecord(org, {
+          action: "save",
+          id: record.id,
+          revision: record.revision,
+          title: "Revised",
+          notes,
+        }),
+      );
+    await edit("two");
+    await expect(edit("stale")).rejects.toMatchObject({ status: 409 });
+  });
+  it("rejects writes after access has been removed", async () => {
+    await workspaceAction(pool, own, { action: "remove", id: editor });
+    await expect(
+      as(editor, () => saveRecord(org, { action: "save", title: "Denied", notes: "Denied" })),
+    ).rejects.toMatchObject({ status: 403 });
+    await workspaceAction(pool, own, { action: "grant", email: email(editor), role: "editor" });
+  });
+  it("runs the pipeline and rejects stale moves", async () => {
+    await as(editor, () =>
+      updatePipeline(org, {
+        action: "save",
+        kind: "task",
+        title: "Sprint task",
+        value: 0,
+        owner: "Sam",
+        stage: "New",
+      }),
+    );
+    const card = (await as(viewer, () => getPipeline(org))).deals[0]!;
+    await as(editor, () =>
+      updatePipeline(org, { action: "move", id: card.id, revision: 0, stage: "In progress" }),
+    );
+    await expect(
+      as(editor, () =>
+        updatePipeline(org, { action: "move", id: card.id, revision: 0, stage: "Won" }),
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+});
+describe("Postgres races", () => {
+  it("waits for the organisation lock and checks revoked access after the wait", async () => {
+    const tx = await pool.connect();
+    await tx.query("BEGIN");
+    await tx.query("SELECT id FROM crm_organisations WHERE id=$1 FOR UPDATE", [org]);
+    let settled = false;
+    const write = as(editor, () =>
+      store.changeData("records", org, { records: [] as unknown[] }, (s) => {
+        s.records.push({ title: "must not save" });
+      }),
+    )
+      .then(
+        () => ({ ok: true, status: 0 }),
+        (e) => ({ ok: false, status: e.status }),
+      )
+      .finally(() => {
+        settled = true;
+      });
+    try {
+      await new Promise((r) => setTimeout(r, 150));
+      expect(settled, "write must wait on the held organisation lock").toBe(false);
+      await tx.query("UPDATE crm_members SET role='viewer' WHERE org_id=$1 AND user_id=$2", [
+        org,
+        editor,
+      ]);
+      await tx.query("COMMIT");
+      expect(await write).toEqual({ ok: false, status: 403 });
+    } finally {
+      await tx.query("ROLLBACK");
+      tx.release();
+      await write;
+    }
+    await workspaceAction(pool, own, { action: "grant", email: email(editor), role: "editor" });
+  });
+  it("makes a grant wait while that account creates its own workspace", async () => {
+    const tx = await pool.connect();
+    await tx.query("BEGIN");
+    // What "create" holds while it checks the account has no workspace yet.
+    await tx.query("SELECT id FROM app_users WHERE id=$1 FOR UPDATE", [joiner]);
+    let settled = false;
+    const grant = workspaceAction(pool, own, {
+      action: "grant",
+      email: email(joiner),
+      role: "editor",
+    })
+      .then(
+        () => ({ status: 0 }),
+        (e) => ({ status: e.status }),
+      )
+      .finally(() => {
+        settled = true;
+      });
+    try {
+      await new Promise((r) => setTimeout(r, 150));
+      expect(settled, "grant must wait on the account lock").toBe(false);
+      joinerOrg = randomUUID();
+      await tx.query("INSERT INTO crm_organisations(id,name,owner_id) VALUES($1,'Own team',$2)", [
+        joinerOrg,
+        joiner,
+      ]);
+      await tx.query("INSERT INTO crm_members(org_id,user_id,role) VALUES($1,$2,'manager')", [
+        joinerOrg,
+        joiner,
+      ]);
+      await tx.query("COMMIT");
+      expect(await grant).toEqual({ status: 409 });
+    } finally {
+      await tx.query("ROLLBACK");
+      tx.release();
+      await grant;
+    }
+  });
+  it("does not lose competing additions", async () => {
+    await as(own, () =>
+      store.changeData("records", org, { records: [] }, (s) => {
+        s.records = [];
+      }),
+    );
+    await Promise.all(
+      Array.from({ length: 12 }, (_, i) =>
+        as(editor, () =>
+          saveRecord(org, { action: "save", title: `Concurrent ${i}`, notes: "kept" }),
+        ),
+      ),
+    );
+    const result = await as(viewer, () => store.readData("records", org, { records: [] }));
+    expect(result.records).toHaveLength(12);
+  });
+  it("only accepts one of two edits from the same revision", async () => {
+    const card = (await as(editor, () => getPipeline(org))).deals[0]!;
+    const results = await Promise.allSettled(
+      ["New", "Won"].map((stage) =>
+        as(editor, () =>
+          updatePipeline(org, { action: "move", id: card.id, revision: card.revision, stage }),
+        ),
+      ),
+    );
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
+  });
+});
+
+describe("storage limits under concurrent writes", () => {
+  it("allows only the last contact that fits, including concurrent additions", async () => {
+    const original = await as(own, () => getContacts(org));
+    await as(own, () =>
+      store.changeData("contacts", org, { contacts: [] as unknown[] }, (s) => {
+        s.contacts = Array.from({ length: 1999 }, (_, i) => ({
+          id: randomUUID(),
+          name: `Contact ${i}`,
+          kind: "person",
+          email: "",
+          companyId: "",
+          notes: [],
+          history: [],
+          revision: 0,
+        }));
+      }),
+    );
+    const results = await Promise.allSettled(
+      ["Last one", "One too many"].map((name) =>
+        as(editor, () => updateContacts(org, { action: "save", kind: "person", name })),
+      ),
+    );
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
+    expect((await as(viewer, () => getContacts(org))).contacts).toHaveLength(2000);
+    await as(own, () =>
+      store.changeData("contacts", org, { contacts: [] }, (s) => {
+        Object.assign(s, original);
+      }),
+    );
+  });
+  it("does not replace a document when it exceeds the byte limit", async () => {
+    const before = await as(own, () => store.readData("records", org, { records: [] }));
+    await expect(
+      as(own, () =>
+        store.changeData("records", org, { records: [] }, (s) => {
+          Object.assign(s, { oversized: "x".repeat(4194304) });
+        }),
+      ),
+    ).rejects.toThrow(/full/);
+    expect(await as(own, () => store.readData("records", org, { records: [] }))).toEqual(before);
+  });
+  it("stops at 500 internal records", async () => {
+    const fill = (records: unknown[]) =>
+      as(own, () =>
+        store.changeData("records", org, { records: [] as unknown[] }, (s) => {
+          s.records = records;
+        }),
+      );
+    await fill(
+      Array.from({ length: 500 }, (_, i) => ({
+        id: randomUUID(),
+        title: `R${i}`,
+        notes: "n",
+        revision: 0,
+      })),
+    );
+    await expect(
+      as(editor, () => saveRecord(org, { action: "save", title: "One more", notes: "n" })),
+    ).rejects.toThrow(/500 records/);
+    await fill([]);
+  });
+  it("says the workspace is full when only the database's size check refuses it", async () => {
+    const before = await as(own, () => store.readData("records", org, { records: [] }));
+    // About 3 MB as JSON.stringify writes it, about 4.5 MB as jsonb text ("0, " per item).
+    const pad = Array.from({ length: 1_500_000 }, () => 0);
+    expect(Buffer.byteLength(JSON.stringify(pad))).toBeLessThan(4194304);
+    await expect(
+      as(own, () =>
+        store.changeData("records", org, { records: [] }, (s) => {
+          Object.assign(s, { pad });
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/full/) });
+    expect(await as(own, () => store.readData("records", org, { records: [] }))).toEqual(before);
+  });
+  it("rejects oversized documents at the database boundary too", async () => {
+    await expect(
+      pool.query("UPDATE crm_records SET data=$2::jsonb WHERE scope=$1", [
+        org,
+        JSON.stringify({ value: "x".repeat(4194304) }),
+      ]),
+    ).rejects.toMatchObject({ code: "23514" });
+  });
+});

@@ -1,0 +1,27 @@
+{
+  "items": [
+    {
+      "id": "create-workspace",
+      "label": "Creates a named team workspace.",
+      "steps": [
+        {
+          "enterAs": "owner"
+        },
+        {
+          "goto": "/team"
+        },
+        {
+          "fill": "Workspace name",
+          "value": "Studio team"
+        },
+        {
+          "click": "Create workspace"
+        },
+        {
+          "expectText": "Studio team"
+        }
+      ]
+    }
+  ],
+  "names": {}
+}

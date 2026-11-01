@@ -1,0 +1,64 @@
+{
+  "items": [
+    {
+      "id": "team-access",
+      "label": "Adds an existing account with read-only access.",
+      "steps": [
+        {
+          "enterAs": "visitor"
+        },
+        {
+          "goto": "/"
+        },
+        {
+          "click": "Create an account"
+        },
+        {
+          "fill": "Email",
+          "value": "teammate@example.test"
+        },
+        {
+          "fill": "Password",
+          "value": "Workspace check 2026"
+        },
+        {
+          "click": "Create account"
+        },
+        {
+          "expectText": "Signed in as teammate@example.test."
+        },
+        {
+          "enterAs": "owner"
+        },
+        {
+          "goto": "/team"
+        },
+        {
+          "fill": "Workspace name",
+          "value": "Studio team"
+        },
+        {
+          "click": "Create workspace"
+        },
+        {
+          "expectText": "Studio team"
+        },
+        {
+          "fill": "Teammate email",
+          "value": "teammate@example.test"
+        },
+        {
+          "select": "Access",
+          "option": "Read only"
+        },
+        {
+          "click": "Save access"
+        },
+        {
+          "expectText": "teammate@example.test"
+        }
+      ]
+    }
+  ],
+  "names": {}
+}

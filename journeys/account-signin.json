@@ -1,0 +1,90 @@
+{
+  "items": [
+    {
+      "id": "account-signin",
+      "label": "Signs in to an existing team account.",
+      "steps": [
+        {
+          "enterAs": "visitor"
+        },
+        {
+          "goto": "/"
+        },
+        {
+          "click": "Create an account"
+        },
+        {
+          "fill": "Email",
+          "value": "teammate@example.test"
+        },
+        {
+          "fill": "Password",
+          "value": "Workspace check 2026"
+        },
+        {
+          "click": "Create account"
+        },
+        {
+          "expectText": "Signed in as teammate@example.test."
+        },
+        {
+          "enterAs": "owner"
+        },
+        {
+          "goto": "/team"
+        },
+        {
+          "fill": "Workspace name",
+          "value": "Studio team"
+        },
+        {
+          "click": "Create workspace"
+        },
+        {
+          "expectText": "Studio team"
+        },
+        {
+          "fill": "Teammate email",
+          "value": "teammate@example.test"
+        },
+        {
+          "select": "Access",
+          "option": "Read only"
+        },
+        {
+          "click": "Save access"
+        },
+        {
+          "expectText": "teammate@example.test"
+        },
+        {
+          "enterAs": "visitor"
+        },
+        {
+          "goto": "/"
+        },
+        {
+          "fill": "Email",
+          "value": "teammate@example.test"
+        },
+        {
+          "fill": "Password",
+          "value": "Workspace check 2026"
+        },
+        {
+          "click": "Sign in"
+        },
+        {
+          "expectText": "Signed in as teammate@example.test."
+        },
+        {
+          "goto": "/team"
+        },
+        {
+          "expectText": "Your access: Read only."
+        }
+      ]
+    }
+  ],
+  "names": {}
+}

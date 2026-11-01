@@ -1,0 +1,94 @@
+{
+  "items": [
+    {
+      "id": "manage-contacts",
+      "label": "Adds a company, person, note and history.",
+      "steps": [
+        {
+          "enterAs": "owner"
+        },
+        {
+          "goto": "/team"
+        },
+        {
+          "fill": "Workspace name",
+          "value": "Studio team"
+        },
+        {
+          "click": "Create workspace"
+        },
+        {
+          "expectText": "Studio team"
+        },
+        {
+          "goto": "/contacts"
+        },
+        {
+          "click": "Add company"
+        },
+        {
+          "fill": "Name",
+          "value": "North studio"
+        },
+        {
+          "click": "Save contact"
+        },
+        {
+          "click": "Add person"
+        },
+        {
+          "fill": "Name",
+          "value": "Sam Lane"
+        },
+        {
+          "fill": "Email",
+          "value": "sam@example.test"
+        },
+        {
+          "select": "Company",
+          "option": "North studio"
+        },
+        {
+          "click": "Save contact"
+        },
+        {
+          "click": "Sam Lane"
+        },
+        {
+          "fill": "New note",
+          "value": "Meet on Tuesday"
+        },
+        {
+          "click": "Add note"
+        },
+        {
+          "expectText": "Meet on Tuesday"
+        },
+        {
+          "expectText": "Note added"
+        },
+        {
+          "click": "Edit contact"
+        },
+        {
+          "fill": "Name",
+          "value": "Sam North"
+        },
+        {
+          "click": "Save contact"
+        },
+        {
+          "expectText": "Sam North"
+        },
+        {
+          "fill": "Search people and companies",
+          "value": "Sam North"
+        },
+        {
+          "expectAbsent": "No matching contacts."
+        }
+      ]
+    }
+  ],
+  "names": {}
+}

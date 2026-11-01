@@ -1,0 +1,204 @@
+{
+  "id": "crm",
+  "version": "0.1.0",
+  "title": "CRM and team workspace",
+  "summary": "Shared people and companies, deals and sprint tasks, team access and internal notes in one workspace.",
+  "category": "crm",
+  "stack": {
+    "contract": "1",
+    "template": "data",
+    "next": "16.3.6",
+    "react": "19.3.0",
+    "node": "24.18.0",
+    "packageManager": "pnpm@11.15.1"
+  },
+  "licence": "MIT",
+  "provenance": {
+    "mode": "derived",
+    "starter": "Pramaan-Dev/product-loop@370419379645405019af029fa08a75680ad75c8b",
+    "derivedFrom": ["Pramaan-Dev/product-loop@370419379645405019af029fa08a75680ad75c8b"],
+    "upstreamNotices": ["NOTICE.md"],
+    "writtenBy": "person"
+  },
+  "measured": {
+    "on": "2026-11-01",
+    "by": "person",
+    "draft": {
+      "peakMiB": 1189,
+      "limitMiB": 2560,
+      "firstAnswerSeconds": 7
+    },
+    "verifier": {
+      "peakMiB": 1508,
+      "limitMiB": 2048,
+      "seconds": 18
+    },
+    "browser": {
+      "peakMiB": 166,
+      "limitMiB": 1024
+    }
+  },
+  "entryPoints": [
+    {
+      "route": "/",
+      "file": "app/page.tsx",
+      "audience": "visitor",
+      "summary": "Sign in, or create an account that a workspace owner can then add to a team."
+    },
+    {
+      "route": "/team",
+      "file": "app/team/page.tsx",
+      "audience": "member",
+      "summary": "Create a workspace, or add, change and remove the people in it."
+    },
+    {
+      "route": "/contacts",
+      "file": "app/contacts/page.tsx",
+      "audience": "member",
+      "summary": "Keep people and companies with their notes and change history."
+    },
+    {
+      "route": "/board",
+      "file": "app/board/page.tsx",
+      "audience": "member",
+      "summary": "Move deals and sprint tasks through New, In progress and Won."
+    },
+    {
+      "route": "/records",
+      "file": "app/records/page.tsx",
+      "audience": "member",
+      "summary": "Open the list of internal records kept for the team."
+    },
+    {
+      "route": "/records/note",
+      "file": "app/records/[entity]/page.tsx",
+      "audience": "member",
+      "summary": "Search, add, edit and export the team's internal notes."
+    },
+    {
+      "route": "/owner",
+      "file": "app/owner/page.tsx",
+      "audience": "owner",
+      "summary": "The app owner changes their own sign-in email and password."
+    },
+    {
+      "route": "/password-reset",
+      "file": "app/password-reset/page.tsx",
+      "audience": "visitor",
+      "summary": "Ask for a password reset link, which is sent only when email is on."
+    },
+    {
+      "route": "/reset-password",
+      "file": "app/reset-password/page.tsx",
+      "audience": "visitor",
+      "summary": "Choose a new password from a one-time reset link."
+    }
+  ],
+  "roles": {
+    "owner": {
+      "source": "owner-pass",
+      "summary": "App owner settings. Workspace access still requires local membership."
+    },
+    "member": {
+      "source": "public-sign-up",
+      "summary": "Unassigned until they create a workspace or its owner adds them."
+    },
+    "visitor": {
+      "source": "anonymous",
+      "summary": "Sees sign-in and reset pages."
+    },
+    "manager": {
+      "source": "public-sign-up",
+      "summary": "Any signed-up account that creates a workspace manages it: adds, changes and removes its people."
+    },
+    "editor": {
+      "source": "added-by-owner",
+      "summary": "Added by a workspace manager; reads and changes that one workspace."
+    },
+    "viewer": {
+      "source": "added-by-owner",
+      "summary": "Added by a workspace manager; reads that one workspace and changes nothing."
+    }
+  },
+  "journeys": [
+    {
+      "id": "create-workspace",
+      "role": "owner",
+      "summary": "Creates a named team workspace.",
+      "status": "ships-working",
+      "checklist": "journeys/create-workspace.json"
+    },
+    {
+      "id": "manage-contacts",
+      "role": "owner",
+      "summary": "Adds a company, person, note and history.",
+      "status": "ships-working",
+      "checklist": "journeys/manage-contacts.json"
+    },
+    {
+      "id": "run-sprint-board",
+      "role": "owner",
+      "summary": "Adds a task, moves it and edits its details.",
+      "status": "ships-working",
+      "checklist": "journeys/run-sprint-board.json"
+    },
+    {
+      "id": "manage-records",
+      "role": "owner",
+      "summary": "Adds, edits and searches internal notes.",
+      "status": "ships-working",
+      "checklist": "journeys/manage-records.json"
+    },
+    {
+      "id": "team-access",
+      "role": "owner",
+      "summary": "Adds an existing account with read-only access.",
+      "status": "ships-working",
+      "checklist": "journeys/team-access.json"
+    },
+    {
+      "id": "account-signin",
+      "role": "member",
+      "summary": "Signs in to an existing team account.",
+      "status": "ships-working",
+      "checklist": "journeys/account-signin.json"
+    },
+    {
+      "id": "owner-settings",
+      "role": "owner",
+      "summary": "Opens owner settings through the owner pass.",
+      "status": "ships-working",
+      "checklist": "journeys/owner-settings.json"
+    },
+    {
+      "id": "password-reset-off",
+      "role": "visitor",
+      "summary": "Shows plainly that password reset needs email.",
+      "status": "ships-working",
+      "checklist": "journeys/password-reset-off.json"
+    },
+    {
+      "id": "password-reset-email",
+      "role": "member",
+      "summary": "Receives a password reset link at a verified email address.",
+      "status": "needs-capability",
+      "capability": "email"
+    }
+  ],
+  "capabilities": ["accounts", "server_data", "roles", "email"],
+  "notIncluded": [
+    "Password reset delivery and email verification need the email module and a configured sender; off by default.",
+    "Signed-in password changes for members are not included.",
+    "Going live needs a platform live database, off by default.",
+    "Attachments, email invites, reminders, external connections and imports need platform capabilities.",
+    "One organisation per account; no organisation switching, ownership transfer or organisation deletion.",
+    "Board owners are text labels, not account assignments; no due dates or sprint periods.",
+    "No payments, subscriptions, outbound messages or vendor connections."
+  ],
+  "protectedPaths": [
+    "lib/accounts.ts",
+    "lib/pramaan/crm-data.ts",
+    "lib/workspace.ts",
+    "app/api/workspace/route.ts"
+  ]
+}

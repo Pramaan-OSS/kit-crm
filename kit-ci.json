@@ -1,0 +1,139 @@
+{
+  "kit": "crm",
+  "version": "0.1.0",
+  "digest": "sha256:17e45c631aec1de14125615ba181299068f82bbe3900b985d6404b2bf4eaf585",
+  "contract": "1",
+  "green": false,
+  "ranAt": "2026-11-01T20:05:42.235Z",
+  "run": null,
+  "gates": [
+    {
+      "id": "contract",
+      "ok": true,
+      "evidence": "121 files, 9 migrations, 11 journeys"
+    },
+    {
+      "id": "licence",
+      "ok": true,
+      "evidence": "MIT; derived, written by person"
+    },
+    {
+      "id": "secrets",
+      "ok": true,
+      "evidence": "Scanned 122 source files for credential-shaped material."
+    },
+    {
+      "id": "packages",
+      "ok": true,
+      "evidence": "3 packages beyond the starter's, every one under an allowed licence"
+    },
+    {
+      "id": "install",
+      "ok": false,
+      "evidence": "Frozen scripts-disabled install passed locally, but full CI admission refused CHAT_INSTALL_NETWORK_UNVERIFIED: this host has no verified install-egress firewall receipt."
+    },
+    {
+      "id": "draft",
+      "ok": true,
+      "evidence": "/ first answered in 5 s; after every entry point, draft: peak 1086 MiB (page cache included), working set up to 976 MiB, anon up to 885 MiB, tmpfs (shmem) up to 40 MiB, of 2048 MiB"
+    },
+    {
+      "id": "check",
+      "ok": true,
+      "evidence": "Production build, typecheck, lint passed in execution image"
+    },
+    {
+      "id": "tests",
+      "ok": true,
+      "evidence": "passed in the cell in 5 s (14 passed, 0 skipped, 0 todo, 0 failed of 14); pramaan-agent-run-39f1e47c634a: peak unread (page cache included), working set up to unread, anon up to unread, tmpfs (shmem) up to unread; pramaan-agent-run-39f1e47c634a-db: peak unread (page cache included), working set up t"
+    },
+    {
+      "id": "migrations",
+      "ok": true,
+      "evidence": "9 migrations applied in one transaction on Postgres 16.15"
+    },
+    {
+      "id": "owner-pass",
+      "ok": true,
+      "evidence": "18 account checks passed: signed-out, owner-pass, owner-pass-once, sign-up, server-role, not-owner, session, forged-session, cross-site, save, read, isolated, sign-out, sign-in, kept, host-cookie, client-throttle, no-lockout."
+    },
+    {
+      "id": "journey:create-workspace",
+      "ok": true,
+      "evidence": "1 items passed in the go-live gate's browser"
+    },
+    {
+      "id": "journey:manage-contacts",
+      "ok": true,
+      "evidence": "1 items passed in the go-live gate's browser"
+    },
+    {
+      "id": "journey:run-sprint-board",
+      "ok": true,
+      "evidence": "1 items passed in the go-live gate's browser"
+    },
+    {
+      "id": "journey:manage-records",
+      "ok": true,
+      "evidence": "1 items passed in the go-live gate's browser"
+    },
+    {
+      "id": "journey:team-access",
+      "ok": true,
+      "evidence": "1 items passed in the go-live gate's browser"
+    },
+    {
+      "id": "journey:account-signin",
+      "ok": true,
+      "evidence": "1 items passed in the go-live gate's browser"
+    },
+    {
+      "id": "journey:owner-settings",
+      "ok": true,
+      "evidence": "1 items passed in the go-live gate's browser"
+    },
+    {
+      "id": "journey:password-reset-off",
+      "ok": true,
+      "evidence": "1 items passed in the go-live gate's browser"
+    },
+    {
+      "id": "authorization",
+      "ok": true,
+      "evidence": "11 account checks passed: signed-out, owner-pass, owner-pass-once, sign-up, server-role, not-owner, session, forged-session, cross-site, sign-out, sign-in."
+    },
+    {
+      "id": "browser",
+      "ok": true,
+      "evidence": "visual-server: peak unread (page cache included), working set up to 133 MiB, anon up to unread, tmpfs (shmem) up to unread (docker stats); visual-server: peak unread (page cache included), working set up to 135 MiB, anon up to unread, tmpfs (shmem) up to unread (docker stats); visual-server: peak un"
+    },
+    {
+      "id": "client-secrets",
+      "ok": true,
+      "evidence": "107 browser files scanned after a stand-in-secret build; no secrets found."
+    },
+    {
+      "id": "tree",
+      "ok": true,
+      "evidence": "121 source files unchanged through generate, lint, typecheck, all tests and production build."
+    }
+  ],
+  "measured": {
+    "on": "2026-11-01",
+    "by": "person",
+    "draft": {
+      "peakMiB": 1189,
+      "limitMiB": 2560,
+      "firstAnswerSeconds": 7
+    },
+    "verifier": {
+      "peakMiB": 1508,
+      "limitMiB": 2048,
+      "seconds": 18
+    },
+    "browser": {
+      "peakMiB": 166,
+      "limitMiB": 1024
+    }
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "blocks": [
+    {
+      "id": "contacts",
+      "version": "0.1.0",
+      "source": "Pramaan-OSS/blocks",
+      "sourceCommit": "8a501e537c345d15d47d44814f79eb2121f7f654",
+      "sourcePath": "registry/contacts",
+      "licence": "MIT",
+      "sourceHashes": {
+        "registry/contacts/README.md": "14b485944548c4b5922706c01d68a67dd0efb2a1ab4ecb300342ac88ed736c04",
+        "registry/contacts/app/api/pramaan/contacts/route.ts": "41f020187f27d363a3afd7a205b0aede89f51cf838d473786f61c8af86e9af3c",
+        "registry/contacts/components/pramaan/contacts/contacts-panel.tsx": "4030a90ff6ea8b653a21d381708e9465ac1f64ad3147cab5e5bff7925cde4baf",
+        "registry/contacts/lib/pramaan/contacts.ts": "80193765c8fc89f7c4a9c87311bc1bbb8ab7b514ebeeeaa31971faf677bbada8",
+        "registry/contacts/src/db/migrations/crm_contacts_001.sql": "5652a10841bf09650724d6712fa5e24b633bb4133746cccb06e22793965b5ad7",
+        "registry/crm-data/lib/pramaan/crm-data.ts": "71697a45a289a71b3b32d206d69ebfea98279316569c99a10ecd4db4ec8b8e7e"
+      }
+    },
+    {
+      "id": "pipeline",
+      "version": "0.1.0",
+      "source": "Pramaan-OSS/blocks",
+      "sourceCommit": "8a501e537c345d15d47d44814f79eb2121f7f654",
+      "sourcePath": "registry/pipeline",
+      "licence": "MIT",
+      "sourceHashes": {
+        "registry/pipeline/README.md": "cd4d830b7e27b1c03485501363cca1c9fcc1cc0bba70d33723fd5a03cbc0beb1",
+        "registry/pipeline/app/api/pramaan/pipeline/route.ts": "95f832f33f80bab07ef328253da9c05e2f62cafe1c50f71d3ca42168f579c2cf",
+        "registry/pipeline/components/pramaan/pipeline/pipeline-panel.tsx": "bcc046857d4ff257a27fc5e5c7c71cb37ca39270efb777584c790dc3faea77af",
+        "registry/pipeline/lib/pramaan/pipeline.ts": "0427aeed7b34c43e68859f3caf4fb6d3d136fe3f2d1fb6130eb09bc03ca8685a",
+        "registry/pipeline/src/db/migrations/crm_pipeline_001.sql": "1da7ac2b80d5231012a6ab736f2cd43c14ca37dc2f434db787a4b667ffa450cb"
+      }
+    },
+    {
+      "id": "password-reset",
+      "version": "0.1.0",
+      "source": "Pramaan-OSS/blocks",
+      "sourceCommit": "8a501e537c345d15d47d44814f79eb2121f7f654",
+      "sourcePath": "registry/password-reset",
+      "licence": "MIT",
+      "sourceHashes": {
+        "registry/password-reset/README.md": "4e0fe6d2ac9063be68a3a1d94e86b87d95be15e5198a30e2b06cf0afa5f3208f",
+        "registry/password-reset/app/api/pramaan/password-reset/route.ts": "0606f26fa24548dd9c6c3bd1ef3f8d665064d086b63ad9d93d04b4c971fc929a",
+        "registry/password-reset/components/pramaan/password-reset/password-panel.tsx": "21c00ff55174a2b604fe46073e643ced6d8351b4f9acd140d1abaf49adb0bd08",
+        "registry/password-reset/lib/pramaan/password-reset-runtime.ts": "404ab11b4444f9bd107895c165c9cf6731f8fab001f9af30cfbff44cc1a585e6",
+        "registry/password-reset/lib/pramaan/password-reset-sender.ts": "4071cb9022ec1e204f2b3c73a8cc9fe1053ee0102acd94bd2b21e9c5af2d2236",
+        "registry/password-reset/lib/pramaan/password-reset-store.ts": "46deb65b0cb518df61459581dcfd3618f2c5383d315fbb6ff26151ec12f921d7",
+        "registry/password-reset/lib/pramaan/password-reset.ts": "a7f3b5b19c8518bd5ee1a6685049a20c15133ed5ac226ad049d2288c9253c55b",
+        "registry/password-reset/migrations/001-password-reset.sql": "294bffb8de50c7af5cd28362c7550001fa449806094b47652a0f6ccc283de83f"
+      }
+    },
+    {
+      "id": "theme",
+      "version": "0.1.0",
+      "source": "Pramaan-OSS/blocks",
+      "sourceCommit": "8a501e537c345d15d47d44814f79eb2121f7f654",
+      "sourcePath": "registry/theme",
+      "licence": "MIT",
+      "sourceHashes": {
+        "registry/theme/lib/pramaan/fonts.ts": "de90da679c962d19170f0dcd78f69558b435dd8a8aeba8b3bc176ecc754ff410",
+        "theme.css": "39e6aafb751ce69c964c0db7917af1b5112d9e64d0f9a5b2e38f48b1223bbdbc"
+      }
+    },
+    {
+      "id": "roles",
+      "version": "0.1.0",
+      "source": "Pramaan-Dev/product-loop",
+      "sourceCommit": "fbc5505d5dffed1e5410359ff65d59d21c872d21",
+      "sourcePath": "blocks/roles",
+      "sourceHashes": {
+        "BLOCK.md": "10b6565b67973583dae140afe35b264dd8b2ad0b14f502c943a10a7f5343632d",
+        "block-ci.json": "5596a68e54371d2e3626c4a2e8315afec5112b2bc2d849a6beee96e79913c35e",
+        "files/app/api/roles/route.ts": "546778a4f8ef4fe00b8127176eed2fc5d4c5bb427bdd00cb51568d01234875c3",
+        "files/app/owner/roles/page.tsx": "4fff2e5ad302ce9cfeec001d0a59f69df4e03ea79c9512da87c2c0d9af0e235c",
+        "files/app/owner/roles/pramaan.feature.json": "c4d4b52f0cf89b7625d15edd83353157162dd9e7cf04e32d6b74de0082bf4203",
+        "files/app/owner/roles/roles-screen.tsx": "f88bd0c1fbef241aded6f71e5de50db7d038850e2c7c3e4edd369f10f1883a2c",
+        "files/app/parts/no-access.tsx": "51024e1f3381404c9f865ba3fad1ff0996dfba0da4e818106d796ff1e7e88a4a",
+        "files/lib/roles/database.ts": "c11a3b5de900a06684d1d9c386a6b164d7e1f15a1efb4688fd10ae307b89a9e5",
+        "files/lib/roles/guard.spec.ts": "64ee06236a26af9d2073eb1ca0081e3c2f023826a313e2c22711c9bfaca09a6f",
+        "files/lib/roles/guard.ts": "25aab03a8a8f7aa29c28aa12fca530f06da37f923b25366d54a4ce11deb9c612",
+        "files/lib/roles/http.ts": "4d3310796b8eb9f3356b5b980963a9ef0aad340f2b9a9c57d3639b3e1917b1e4",
+        "files/lib/roles/members.ts": "83143fae4345adf949ca688ebdbbceb0286bf366c73c6aa729ecba0d61de3bb4",
+        "files/lib/roles/runtime.ts": "6ccb8220c2ecd5e2b0aef7e9e62540696aa3880d8c619807e0f09817a590be47",
+        "migrations/create-role-members.sql": "cdfef33f73c8a283b8db79c4e587857ef9a2f54c7d62168808074639ee83b700",
+        "pramaan.block.json": "5f8231d9eb063f5714a67297dbada669a94927315a3a9a9d1539727e5730f9bc",
+        "tests/give-a-role.json": "5d0197309eec78f6d85bd096dcedbe248ed86e7d314857fa17a91dd4e7da8c38"
+      }
+    },
+    {
+      "id": "admin-table",
+      "version": "0.1.0",
+      "source": "Pramaan-Dev/product-loop",
+      "sourceCommit": "fbc5505d5dffed1e5410359ff65d59d21c872d21",
+      "sourcePath": "blocks/admin-table",
+      "sourceHashes": {
+        "BLOCK.md": "7b4ae7ae1a45023378ff9a686430ca6fefe3a8c01f34befe1904dbc6755ea3ea",
+        "block-ci.json": "3f7e7471f054d7b4d4ac394ecf18042eedad5641001bba828e8aef888814efa2",
+        "files/app/api/records/[entity]/export/route.ts": "8d4e3827fa815ec89f232dcc60763510ba768053f7db8d61c6ba14711ec69901",
+        "files/app/api/records/[entity]/route.ts": "e94c15e712bd9aa0683e9913ff2968d175faa0e570865f9bc1bcdbf026e79fc4",
+        "files/app/records/[entity]/page.tsx": "7b518d4e3c0bb5324f726e95a0e8a53a4555c82706cad62ce7e086dac1fc0336",
+        "files/app/records/[entity]/record-form.tsx": "d3d20d3fba35ce030ab43ea6bde6b04df9ccbdb5c3665c72b994cd822e6ac809",
+        "files/app/records/[entity]/records-table.tsx": "9706174b514483f9b10f4e85d79111c235618e568644b021f0e35bc40d147766",
+        "files/app/records/page.tsx": "31b144735407e2d565df2d4a837e654a619ce35be87c270239d3704aaa025cb4",
+        "files/app/records/pramaan.feature.json": "5720402783bf3bb8f05f8981dd59d5ade6e8a28f78cee42b7bf1cf14994a3079",
+        "files/lib/admin-table/entities.ts": "e79bd5c814c4491772eb8785491c840a6350a890d465c5bcd98f5ef13217ec64",
+        "files/lib/admin-table/records.spec.ts": "03af257b4b05e510c6e796128eaa0cf76d2ee0b11e994c4711dc1c21913ed302",
+        "files/lib/admin-table/records.ts": "5dd32bf63a2be31a95ece6ee6d6f2840c10cb39ffd116cdd35e95cedcb6bef7a",
+        "pramaan.block.json": "daa80fa9ca0191cb19cee489838618a66f7960c7f54a045f57b2294ac596be16",
+        "tests/manage-records.json": "d43c6c42f9f0b1ce5ed3b9e1573e648068d7c2224d6fd425641f0b5489a570cf"
+      }
+    }
+  ],
+  "adaptations": {
+    "contacts": "Adapted to starter app accounts and platform module doors; no SDK or organisation-account block. Source hashes identify the copied registry files before adaptation. Migration renamed to 0101-contacts.sql; storage transaction supplies organisation scope, revision checks, size limits and a row lock. Version 0.1.0 is the kit source snapshot label; the OSS registry has no version field.",
+    "pipeline": "Adapted to starter app accounts and platform module doors; no SDK or organisation-account block. Source hashes identify the copied registry files before adaptation. Migration renamed to 0102-pipeline.sql; tasks use the same board with task labels. Version 0.1.0 is the kit source snapshot label; the OSS registry has no version field.",
+    "password-reset": "Adapted to starter app accounts and platform module doors; no SDK or organisation-account block. Source hashes identify the copied registry files before adaptation. Registry sender/store replaced with starter reset-request and reset actions; migration is a compatibility marker because starter owns password proofs. Signed-in member change is not shipped. Version 0.1.0 is the kit source snapshot label; the OSS registry has no version field.",
+    "theme": "Adapted to starter app accounts and platform module doors; no SDK or organisation-account block. Source hashes identify the copied registry files before adaptation. Remote font imports replaced by bundled font packages; global labels and buttons styled for clear, readable forms. Version 0.1.0 is the kit source snapshot label; the OSS registry has no version field.",
+    "roles": "Organisation-scoped membership and records replace global account listing and owner-only personal records; one shared database pool. Only lib/roles/http.ts and the /api/roles and /owner/roles aliases are kept; the unscoped role guard, page guard, members and no-access files were removed because workspace access is checked in lib/pramaan/crm-data.ts.",
+    "admin-table": "Organisation-scoped membership and records replace global account listing and owner-only personal records; one shared database pool."
+  }
+}

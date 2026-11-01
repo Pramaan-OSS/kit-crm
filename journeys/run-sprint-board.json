@@ -1,0 +1,68 @@
+{
+  "items": [
+    {
+      "id": "run-sprint-board",
+      "label": "Adds a task, moves it and edits its details.",
+      "steps": [
+        {
+          "enterAs": "owner"
+        },
+        {
+          "goto": "/team"
+        },
+        {
+          "fill": "Workspace name",
+          "value": "Studio team"
+        },
+        {
+          "click": "Create workspace"
+        },
+        {
+          "expectText": "Studio team"
+        },
+        {
+          "goto": "/board"
+        },
+        {
+          "click": "Add card"
+        },
+        {
+          "fill": "Title",
+          "value": "Plan the sprint"
+        },
+        {
+          "select": "Type",
+          "option": "Task"
+        },
+        {
+          "fill": "Owner",
+          "value": "Sam"
+        },
+        {
+          "click": "Save card"
+        },
+        {
+          "select": "Stage for Plan the sprint",
+          "option": "In progress"
+        },
+        {
+          "expectText": "Plan the sprint moved to In progress."
+        },
+        {
+          "click": "Edit Plan the sprint"
+        },
+        {
+          "fill": "Title",
+          "value": "Sprint planned"
+        },
+        {
+          "click": "Save card"
+        },
+        {
+          "expectText": "Sprint planned"
+        }
+      ]
+    }
+  ],
+  "names": {}
+}
