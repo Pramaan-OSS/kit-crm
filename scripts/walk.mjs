@@ -4,7 +4,7 @@ import { chromium, expect } from "@playwright/test";
 import { Pool } from "pg";
 
 const config = JSON.parse(await readFile(".evidence/runtime.json", "utf8"));
-if (new URL(config.origin).port !== "3307") throw Error("Walk must use port 3307");
+if (new URL(config.origin).port !== "3410") throw Error("Walk must use port 3410");
 function pass(overrides = {}) {
   const now = Math.floor(Date.now() / 1000);
   const body = Buffer.from(
@@ -191,7 +191,7 @@ try {
     ".evidence/walk.json",
     JSON.stringify(
       {
-        port: 3307,
+        port: 3410,
         headless: true,
         browser: "chromium",
         results,

@@ -348,25 +348,36 @@ describe("storage limits under concurrent writes", () => {
     await fill([]);
   });
   it("says the workspace is full when only the database's size check refuses it", async () => {
-    const before = await as(own, () => store.readData("records", org, { records: [] }));
-    // About 3 MB as JSON.stringify writes it, about 4.5 MB as jsonb text ("0, " per item).
-    const pad = Array.from({ length: 1_500_000 }, () => 0);
-    expect(Buffer.byteLength(JSON.stringify(pad))).toBeLessThan(4194304);
-    await expect(
-      as(own, () =>
-        store.changeData("records", org, { records: [] }, (s) => {
-          Object.assign(s, { pad });
-        }),
-      ),
-    ).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/full/) });
-    expect(await as(own, () => store.readData("records", org, { records: [] }))).toEqual(before);
+    // A private pool keeps the small test constraint out of every other connection.
+    const small = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
+    try {
+      await small.query(`CREATE TEMP TABLE crm_records (
+        scope text PRIMARY KEY, data jsonb NOT NULL CHECK (octet_length(data::text) <= 4096)
+      )`);
+      const limited = createStore(small);
+      const before = { records: [] };
+      const pad = Array.from({ length: 1500 }, () => 0);
+      expect(Buffer.byteLength(JSON.stringify(pad))).toBeLessThan(4096);
+      await expect(
+        as(own, () =>
+          limited.changeData("records", org, before, (state) => {
+            Object.assign(state, { pad });
+          }),
+        ),
+      ).rejects.toMatchObject({ status: 400, message: expect.stringMatching(/full/) });
+      expect(await as(own, () => limited.readData("records", org, before))).toEqual(before);
+      expect((await small.query("SELECT count(*) FROM crm_records")).rows[0].count).toBe("0");
+    } finally {
+      await small.end();
+    }
   });
   it("rejects oversized documents at the database boundary too", async () => {
+    // Generate the large string inside Postgres, avoiding a large wire payload and JSON parse.
     await expect(
-      pool.query("UPDATE crm_records SET data=$2::jsonb WHERE scope=$1", [
-        org,
-        JSON.stringify({ value: "x".repeat(4194304) }),
-      ]),
+      pool.query(
+        "UPDATE crm_records SET data=jsonb_build_object('value', repeat('x',4194304)) WHERE scope=$1",
+        [org],
+      ),
     ).rejects.toMatchObject({ code: "23514" });
   });
 });

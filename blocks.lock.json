@@ -5,7 +5,7 @@
       "id": "contacts",
       "version": "0.1.0",
       "source": "Pramaan-OSS/blocks",
-      "sourceCommit": "8a501e537c345d15d47d44814f79eb2121f7f654",
+      "sourceCommit": "a61a2af8cf6d1625959356afc0b9be8557db0cbb",
       "sourcePath": "registry/contacts",
       "licence": "MIT",
       "sourceHashes": {
@@ -21,7 +21,7 @@
       "id": "pipeline",
       "version": "0.1.0",
       "source": "Pramaan-OSS/blocks",
-      "sourceCommit": "8a501e537c345d15d47d44814f79eb2121f7f654",
+      "sourceCommit": "a61a2af8cf6d1625959356afc0b9be8557db0cbb",
       "sourcePath": "registry/pipeline",
       "licence": "MIT",
       "sourceHashes": {
@@ -36,7 +36,7 @@
       "id": "password-reset",
       "version": "0.1.0",
       "source": "Pramaan-OSS/blocks",
-      "sourceCommit": "8a501e537c345d15d47d44814f79eb2121f7f654",
+      "sourceCommit": "a61a2af8cf6d1625959356afc0b9be8557db0cbb",
       "sourcePath": "registry/password-reset",
       "licence": "MIT",
       "sourceHashes": {
@@ -54,7 +54,7 @@
       "id": "theme",
       "version": "0.1.0",
       "source": "Pramaan-OSS/blocks",
-      "sourceCommit": "8a501e537c345d15d47d44814f79eb2121f7f654",
+      "sourceCommit": "a61a2af8cf6d1625959356afc0b9be8557db0cbb",
       "sourcePath": "registry/theme",
       "licence": "MIT",
       "sourceHashes": {
@@ -114,7 +114,7 @@
   "adaptations": {
     "contacts": "Adapted to starter app accounts and platform module doors; no SDK or organisation-account block. Source hashes identify the copied registry files before adaptation. Migration renamed to 0101-contacts.sql; storage transaction supplies organisation scope, revision checks, size limits and a row lock. Version 0.1.0 is the kit source snapshot label; the OSS registry has no version field.",
     "pipeline": "Adapted to starter app accounts and platform module doors; no SDK or organisation-account block. Source hashes identify the copied registry files before adaptation. Migration renamed to 0102-pipeline.sql; tasks use the same board with task labels. Version 0.1.0 is the kit source snapshot label; the OSS registry has no version field.",
-    "password-reset": "Adapted to starter app accounts and platform module doors; no SDK or organisation-account block. Source hashes identify the copied registry files before adaptation. Registry sender/store replaced with starter reset-request and reset actions; migration is a compatibility marker because starter owns password proofs. Signed-in member change is not shipped. Version 0.1.0 is the kit source snapshot label; the OSS registry has no version field.",
+    "password-reset": "Adapted to starter app accounts and platform module doors; no SDK or organisation-account block. Source hashes identify the copied registry files before adaptation. Registry sender/store replaced with starter reset-request and reset actions; migration is a compatibility marker because starter owns password proofs. Signed-in member change is not shipped. Version 0.1.0 is the kit source snapshot label; the OSS registry has no version field. Password crypto helpers extracted to lib/password.ts, retaining both formats and the four-derive cap. Sign-in atomically compares the old hash and invalidates sessions before creating a new session; CRM also invalidates reset proofs.",
     "theme": "Adapted to starter app accounts and platform module doors; no SDK or organisation-account block. Source hashes identify the copied registry files before adaptation. Remote font imports replaced by bundled font packages; global labels and buttons styled for clear, readable forms. Version 0.1.0 is the kit source snapshot label; the OSS registry has no version field.",
     "roles": "Organisation-scoped membership and records replace global account listing and owner-only personal records; one shared database pool. Only lib/roles/http.ts and the /api/roles and /owner/roles aliases are kept; the unscoped role guard, page guard, members and no-access files were removed because workspace access is checked in lib/pramaan/crm-data.ts.",
     "admin-table": "Organisation-scoped membership and records replace global account listing and owner-only personal records; one shared database pool."
