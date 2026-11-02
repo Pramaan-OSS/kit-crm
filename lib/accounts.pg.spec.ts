@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID, scryptSync } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { afterAll, describe, expect, it } from "vitest";
 import { createAccounts, verifyPassword } from "./accounts";
@@ -9,8 +9,9 @@ const pool = new Pool({ connectionString: url, max: 2 });
 const ids: string[] = [];
 const password = "Correct password 42";
 const salt = "b".repeat(32);
-const legacy = `scrypt:${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
-const strong = `scrypt$N=131072,r=8,p=1$${salt}$${scryptSync(password, salt, 64, { N: 131072, r: 8, p: 1, maxmem: 256 * 1024 * 1024 }).toString("hex")}`;
+// Precomputed from `password` and `salt`, so loading this file runs no 128 MiB derive.
+const legacy = `scrypt:${salt}:193530f31c5bea86c67c14c60104d9250c29815872b26aeade800d6f51dfc5a243ecb3a55ca524bc16bdb409c6226a1ba7ab33bdd80e26431388a454783a0757`;
+const strong = `scrypt$N=131072,r=8,p=1$${salt}$9f7a5514880c38e49008d5d4b3f4681473ca6a06f372425e606055d463c8f1e67aa4c6e6731705c8ca3a4b8e630cc652add1b49429af92257d16721e570549e5`;
 const accounts = createAccounts(pool, {
   secret: "x".repeat(32),
   secureCookies: false,
