@@ -46,6 +46,91 @@ afterAll(async () => {
   await pool.query("DELETE FROM app_users WHERE id=ANY($1::uuid[])", [users]);
   await pool.end();
 });
+describe("releasing a member who never confirmed their address", () => {
+  // The starter's own statement, from the owner action in lib/accounts.ts once it is re-synced here.
+  const release = (id: string) =>
+    pool.query(
+      "DELETE FROM app_users WHERE email=$1 AND role='member' AND email_verified_at IS NULL AND id<>$2",
+      [email(id), own],
+    );
+  const documents = async (scope: string) => {
+    let found = 0;
+    for (const table of ["crm_contacts", "crm_pipeline", "crm_records"])
+      found += (await pool.query(`SELECT 1 FROM ${table} WHERE scope=$1`, [scope])).rowCount ?? 0;
+    return found;
+  };
+  const account = (id: string) =>
+    pool.query(
+      "INSERT INTO app_users(id,email,password_hash,role) VALUES($1,$2,'not-a-password','member')",
+      [id, email(id)],
+    );
+  it("takes the workspace they made, its access and its documents", async () => {
+    const released = randomUUID();
+    const teammate = randomUUID();
+    await account(released);
+    await account(teammate);
+    try {
+      await workspaceAction(pool, released, { action: "create", name: "Squatted" });
+      const scope = (await membership(pool, released))!.org_id;
+      await workspaceAction(pool, released, {
+        action: "grant",
+        email: email(teammate),
+        role: "editor",
+      });
+      for (const block of ["contacts", "pipeline", "records"] as const)
+        await as(released, () => store.changeData(block, scope, {}, () => {}));
+      expect(await documents(scope)).toBe(3);
+      expect((await release(released)).rowCount).toBe(1);
+      expect(await documents(scope)).toBe(0);
+      expect(
+        (await pool.query("SELECT 1 FROM crm_organisations WHERE id=$1", [scope])).rowCount,
+      ).toBe(0);
+      expect(
+        (await pool.query("SELECT 1 FROM crm_members WHERE org_id=$1", [scope])).rowCount,
+      ).toBe(0);
+      // The teammate keeps their account and is free to start again.
+      expect((await pool.query("SELECT 1 FROM app_users WHERE id=$1", [teammate])).rowCount).toBe(
+        1,
+      );
+      await workspaceAction(pool, teammate, { action: "create", name: "Fresh start" });
+      await pool.query("DELETE FROM crm_organisations WHERE owner_id=$1", [teammate]);
+    } finally {
+      await pool.query("DELETE FROM app_users WHERE id=ANY($1::uuid[])", [[released, teammate]]);
+    }
+  });
+  it("takes only their own access to someone else's workspace", async () => {
+    const released = randomUUID();
+    await account(released);
+    await workspaceAction(pool, own, { action: "grant", email: email(released), role: "viewer" });
+    await as(own, () => store.changeData("records", org, { records: [] }, () => {}));
+    expect((await release(released)).rowCount).toBe(1);
+    expect((await membership(pool, released))?.org_id).toBeUndefined();
+    expect((await membership(pool, own))?.org_id).toBe(org);
+    expect(await documents(org)).toBeGreaterThan(0);
+  });
+  it("lets a write in progress finish first, and leaves nothing of it behind", async () => {
+    const released = randomUUID();
+    await account(released);
+    await workspaceAction(pool, released, { action: "create", name: "Busy" });
+    const scope = (await membership(pool, released))!.org_id;
+    const tx = await pool.connect();
+    try {
+      await tx.query("BEGIN");
+      await tx.query("SELECT id FROM crm_organisations WHERE id=$1 FOR UPDATE", [scope]);
+      await tx.query("INSERT INTO crm_contacts(scope,data) VALUES($1,'{}')", [scope]);
+      const removed = release(released);
+      await tx.query("COMMIT");
+      expect((await removed).rowCount).toBe(1);
+      expect(await documents(scope)).toBe(0);
+      await expect(
+        as(released, () => store.changeData("contacts", scope, {}, () => {})),
+      ).rejects.toMatchObject({ status: 403 });
+      expect(await documents(scope)).toBe(0);
+    } finally {
+      tx.release();
+    }
+  });
+});
 describe("validation", () => {
   it("rejects stale and missing revisions", () => {
     expect(() => checkRevision({ revision: 2 }, 1, "contact")).toThrow(/changed/);
