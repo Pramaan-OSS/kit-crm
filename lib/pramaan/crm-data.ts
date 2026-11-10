@@ -19,36 +19,45 @@ export function documentJson(value: unknown) {
     throw new CrmProblem("This workspace is full. Remove entries before saving more.");
   return json;
 }
-type Block = "contacts" | "pipeline" | "records";
+// Internal notes stay one document per workspace; contacts, companies, deals and stages are rows (0106).
+type Block = "records";
+/**
+ * Who is asking, as rechecked under the organisation lock. `only` is the account whose rows they may see and change
+ * when the workspace is in one-person mode and they are not its owner; null means every row in the workspace.
+ */
+export type Access = { user: string; role: "manager" | "editor" | "viewer"; only: string | null };
 export function createStore(pool: Pool) {
   function table(block: Block) {
-    if (!["contacts", "pipeline", "records"].includes(block))
-      throw new CrmProblem("Choose a workspace list.");
+    if (block !== "records") throw new CrmProblem("Choose a workspace list.");
     return `crm_${block}`;
   }
-  async function permit(tx: PoolClient, scope: string, write: boolean) {
+  async function permit(tx: PoolClient, scope: string, write: boolean): Promise<Access> {
     const user = requestUser.getStore();
     if (!user) throw new CrmProblem("Sign in to see this.", 401);
-    // The same organisation lock serializes membership changes and document writes.
+    // The same organisation lock serializes membership changes and every workspace write.
     // Recheck the permission after acquiring it, never trust a prior route check.
-    await tx.query("SELECT id FROM crm_organisations WHERE id=$1 FOR UPDATE", [scope]);
+    const org = await tx.query(
+      "SELECT owner_id,one_person FROM crm_organisations WHERE id=$1 FOR UPDATE",
+      [scope],
+    );
     const m = await tx.query("SELECT role FROM crm_members WHERE org_id=$1 AND user_id=$2", [
       scope,
       user,
     ]);
-    if (!m.rows[0] || (write && m.rows[0].role === "viewer"))
+    if (!org.rows[0] || !m.rows[0] || (write && m.rows[0].role === "viewer"))
       throw new CrmProblem("You don't have permission to change or open this workspace.", 403);
+    const only = org.rows[0].one_person && org.rows[0].owner_id !== user ? user : null;
+    return { user, role: m.rows[0].role, only };
   }
   async function transaction<T>(
     scope: string,
     write: boolean,
-    work: (tx: PoolClient) => Promise<T>,
+    work: (tx: PoolClient, access: Access) => Promise<T>,
   ) {
     const tx = await pool.connect();
     try {
       await tx.query("BEGIN");
-      await permit(tx, scope, write);
-      const value = await work(tx);
+      const value = await work(tx, await permit(tx, scope, write));
       await tx.query("COMMIT");
       return value;
     } catch (e) {
@@ -62,6 +71,8 @@ export function createStore(pool: Pool) {
     }
   }
   return {
+    /** Runs row queries for one workspace inside its locked, permission-checked transaction. */
+    withScope: transaction,
     readData<T>(block: Block, scope: string, initial: T): Promise<T> {
       return transaction(
         scope,
@@ -87,6 +98,13 @@ export function createStore(pool: Pool) {
       });
     },
   };
+}
+export function withScope<T>(
+  scope: string,
+  write: boolean,
+  work: (tx: PoolClient, access: Access) => Promise<T>,
+) {
+  return createStore(database()).withScope(scope, write, work);
 }
 export function readData<T>(block: Block, scope: string, initial: T) {
   return createStore(database()).readData(block, scope, initial);

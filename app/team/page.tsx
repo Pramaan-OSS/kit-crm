@@ -3,7 +3,7 @@ import { useState } from "react";
 import { api, useResource } from "../../lib/pramaan/client";
 
 type Team = {
-  workspace: null | { name: string; role: string };
+  workspace: null | { name: string; role: string; onePerson: boolean };
   members: { id: string; email: string | null; role: string }[];
 };
 export default function Team() {
@@ -69,7 +69,11 @@ export default function Team() {
                   : "Read only"}
               .
             </p>
-            <p>Everyone here shares this workspace. Other workspaces cannot see its records.</p>
+            <p>
+              {data.workspace.onePerson
+                ? "Each person sees only the contacts and cards they added. The workspace owner sees everything."
+                : "Everyone here shares this workspace. Other workspaces cannot see its records."}
+            </p>
             {data.workspace.role === "viewer" && (
               <p>You can read records. Ask the workspace owner if you need to make changes.</p>
             )}
@@ -114,6 +118,15 @@ export default function Team() {
                   Rename workspace
                 </button>
               </form>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={data.workspace.onePerson}
+                  disabled={busy}
+                  onChange={(e) => void save({ action: "one-person", on: e.target.checked })}
+                />{" "}
+                Each person sees only their own contacts and cards
+              </label>
             </section>
           )}
           <section>

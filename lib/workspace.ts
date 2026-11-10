@@ -6,6 +6,7 @@ export type Membership = {
   name: string;
   role: "manager" | "editor" | "viewer";
   owner_id: string;
+  one_person: boolean;
 };
 export async function membership(
   pool: Pick<Pool, "query">,
@@ -13,7 +14,7 @@ export async function membership(
 ): Promise<Membership | undefined> {
   return (
     await pool.query<Membership>(
-      `SELECT m.org_id,m.role,o.name,o.owner_id FROM crm_members m JOIN crm_organisations o ON o.id=m.org_id WHERE m.user_id=$1`,
+      `SELECT m.org_id,m.role,o.name,o.owner_id,o.one_person FROM crm_members m JOIN crm_organisations o ON o.id=m.org_id WHERE m.user_id=$1`,
       [user],
     )
   ).rows[0];
@@ -52,6 +53,12 @@ export async function workspaceAction(pool: Pool, user: string, body: Record<str
         if (!name || name.length > 120)
           throw new AccountError(400, "Use a workspace name of up to 120 characters.");
         await tx.query("UPDATE crm_organisations SET name=$2 WHERE id=$1", [m.org_id, name]);
+      } else if (body.action === "one-person") {
+        if (typeof body.on !== "boolean") throw new AccountError(400, "Choose on or off.");
+        await tx.query("UPDATE crm_organisations SET one_person=$2 WHERE id=$1", [
+          m.org_id,
+          body.on,
+        ]);
       } else if (body.action === "grant") {
         if (body.role !== "editor" && body.role !== "viewer")
           throw new AccountError(400, "Choose Can edit or Read only.");

@@ -53,11 +53,31 @@ describe("releasing a member who never confirmed their address", () => {
       "DELETE FROM app_users WHERE email=$1 AND role='member' AND email_verified_at IS NULL AND id<>$2",
       [email(id), own],
     );
+  // Everything a workspace keeps: its rows (0106) and its notes document.
   const documents = async (scope: string) => {
     let found = 0;
+    for (const table of ["crm_contact_rows", "crm_deals", "crm_stages"])
+      found += (await pool.query(`SELECT 1 FROM ${table} WHERE org_id=$1`, [scope])).rowCount ?? 0;
     for (const table of ["crm_contacts", "crm_pipeline", "crm_records"])
       found += (await pool.query(`SELECT 1 FROM ${table} WHERE scope=$1`, [scope])).rowCount ?? 0;
     return found;
+  };
+  const fill = async (user: string, scope: string) => {
+    await as(user, () =>
+      updateContacts(scope, { action: "save", kind: "company", name: "Kept company" }),
+    );
+    const stageId = (await as(user, () => getPipeline(scope))).stages[0]!.id;
+    await as(user, () =>
+      updatePipeline(scope, {
+        action: "save",
+        kind: "deal",
+        title: "Kept deal",
+        value: 1,
+        owner: "Sam",
+        stageId,
+      }),
+    );
+    await as(user, () => store.changeData("records", scope, {}, () => {}));
   };
   const account = (id: string) =>
     pool.query(
@@ -77,9 +97,9 @@ describe("releasing a member who never confirmed their address", () => {
         email: email(teammate),
         role: "editor",
       });
-      for (const block of ["contacts", "pipeline", "records"] as const)
-        await as(released, () => store.changeData(block, scope, {}, () => {}));
-      expect(await documents(scope)).toBe(3);
+      await fill(teammate, scope);
+      // Three stages, a company, a deal and the notes document.
+      expect(await documents(scope)).toBe(6);
       expect((await release(released)).rowCount).toBe(1);
       expect(await documents(scope)).toBe(0);
       expect(
@@ -98,15 +118,26 @@ describe("releasing a member who never confirmed their address", () => {
       await pool.query("DELETE FROM app_users WHERE id=ANY($1::uuid[])", [[released, teammate]]);
     }
   });
-  it("takes only their own access to someone else's workspace", async () => {
+  it("takes only their own access to someone else's workspace, and hands their rows to its owner", async () => {
     const released = randomUUID();
     await account(released);
-    await workspaceAction(pool, own, { action: "grant", email: email(released), role: "viewer" });
-    await as(own, () => store.changeData("records", org, { records: [] }, () => {}));
+    await workspaceAction(pool, own, { action: "grant", email: email(released), role: "editor" });
+    await as(released, () =>
+      updateContacts(org, { action: "save", kind: "person", name: "Added by a leaver" }),
+    );
+    const before = await documents(org);
     expect((await release(released)).rowCount).toBe(1);
     expect((await membership(pool, released))?.org_id).toBeUndefined();
     expect((await membership(pool, own))?.org_id).toBe(org);
-    expect(await documents(org)).toBeGreaterThan(0);
+    expect(await documents(org)).toBe(before);
+    const kept = await pool.query(
+      "SELECT owner_id FROM crm_contact_rows WHERE org_id=$1 AND name='Added by a leaver'",
+      [org],
+    );
+    expect(kept.rows).toEqual([{ owner_id: own }]);
+    await pool.query("DELETE FROM crm_contact_rows WHERE org_id=$1 AND name='Added by a leaver'", [
+      org,
+    ]);
   });
   it("lets a write in progress finish first, and leaves nothing of it behind", async () => {
     const released = randomUUID();
@@ -117,13 +148,18 @@ describe("releasing a member who never confirmed their address", () => {
     try {
       await tx.query("BEGIN");
       await tx.query("SELECT id FROM crm_organisations WHERE id=$1 FOR UPDATE", [scope]);
-      await tx.query("INSERT INTO crm_contacts(scope,data) VALUES($1,'{}')", [scope]);
+      await tx.query(
+        "INSERT INTO crm_contact_rows(id,org_id,owner_id,kind,name) VALUES($1,$2,$3,'person','Mid-write')",
+        [randomUUID(), scope, released],
+      );
       const removed = release(released);
       await tx.query("COMMIT");
       expect((await removed).rowCount).toBe(1);
       expect(await documents(scope)).toBe(0);
       await expect(
-        as(released, () => store.changeData("contacts", scope, {}, () => {})),
+        as(released, () =>
+          updateContacts(scope, { action: "save", kind: "person", name: "Too late" }),
+        ),
       ).rejects.toMatchObject({ status: 403 });
       expect(await documents(scope)).toBe(0);
     } finally {
@@ -247,6 +283,7 @@ describe("real organisation permissions", () => {
     await workspaceAction(pool, own, { action: "grant", email: email(editor), role: "editor" });
   });
   it("runs the pipeline and rejects stale moves", async () => {
+    const [fresh, doing, won] = (await as(viewer, () => getPipeline(org))).stages;
     await as(editor, () =>
       updatePipeline(org, {
         action: "save",
@@ -254,18 +291,24 @@ describe("real organisation permissions", () => {
         title: "Sprint task",
         value: 0,
         owner: "Sam",
-        stage: "New",
+        stageId: fresh!.id,
       }),
     );
     const card = (await as(viewer, () => getPipeline(org))).deals[0]!;
+    expect(card.stageId).toBe(fresh!.id);
     await as(editor, () =>
-      updatePipeline(org, { action: "move", id: card.id, revision: 0, stage: "In progress" }),
+      updatePipeline(org, { action: "move", id: card.id, revision: 0, stageId: doing!.id }),
     );
     await expect(
       as(editor, () =>
-        updatePipeline(org, { action: "move", id: card.id, revision: 0, stage: "Won" }),
+        updatePipeline(org, { action: "move", id: card.id, revision: 0, stageId: won!.id }),
       ),
     ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      as(viewer, () =>
+        updatePipeline(org, { action: "move", id: card.id, revision: 1, stageId: won!.id }),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
   });
 });
 describe("Postgres races", () => {
@@ -357,11 +400,12 @@ describe("Postgres races", () => {
     expect(result.records).toHaveLength(12);
   });
   it("only accepts one of two edits from the same revision", async () => {
-    const card = (await as(editor, () => getPipeline(org))).deals[0]!;
+    const { deals, stages } = await as(editor, () => getPipeline(org));
+    const card = deals[0]!;
     const results = await Promise.allSettled(
-      ["New", "Won"].map((stage) =>
+      [stages[0]!.id, stages[2]!.id].map((stageId) =>
         as(editor, () =>
-          updatePipeline(org, { action: "move", id: card.id, revision: card.revision, stage }),
+          updatePipeline(org, { action: "move", id: card.id, revision: card.revision, stageId }),
         ),
       ),
     );
@@ -372,20 +416,11 @@ describe("Postgres races", () => {
 
 describe("storage limits under concurrent writes", () => {
   it("allows only the last contact that fits, including concurrent additions", async () => {
-    const original = await as(own, () => getContacts(org));
-    await as(own, () =>
-      store.changeData("contacts", org, { contacts: [] as unknown[] }, (s) => {
-        s.contacts = Array.from({ length: 1999 }, (_, i) => ({
-          id: randomUUID(),
-          name: `Contact ${i}`,
-          kind: "person",
-          email: "",
-          companyId: "",
-          notes: [],
-          history: [],
-          revision: 0,
-        }));
-      }),
+    const existing = (await as(own, () => getContacts(org))).contacts.length;
+    await pool.query(
+      `INSERT INTO crm_contact_rows(id,org_id,owner_id,kind,name)
+       SELECT gen_random_uuid(),$1,$2,'person','Filler '||i FROM generate_series(1,$3::int) i`,
+      [org, own, 1999 - existing],
     );
     const results = await Promise.allSettled(
       ["Last one", "One too many"].map((name) =>
@@ -395,11 +430,64 @@ describe("storage limits under concurrent writes", () => {
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
     expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
     expect((await as(viewer, () => getContacts(org))).contacts).toHaveLength(2000);
-    await as(own, () =>
-      store.changeData("contacts", org, { contacts: [] }, (s) => {
-        Object.assign(s, original);
-      }),
+    await pool.query(
+      "DELETE FROM crm_contact_rows WHERE org_id=$1 AND (name LIKE 'Filler %' OR name IN ('Last one','One too many'))",
+      [org],
     );
+  });
+  it("stops at 500 cards, including concurrent additions", async () => {
+    const { deals, stages } = await as(own, () => getPipeline(org));
+    await pool.query(
+      `INSERT INTO crm_deals(id,org_id,owner_id,stage_id,kind,title,value,owner)
+       SELECT gen_random_uuid(),$1,$2,$3,'task','Filler '||i,0,'Sam' FROM generate_series(1,$4::int) i`,
+      [org, own, stages[0]!.id, 499 - deals.length],
+    );
+    const results = await Promise.allSettled(
+      ["Last card", "One card too many"].map((title) =>
+        as(editor, () =>
+          updatePipeline(org, {
+            action: "save",
+            kind: "task",
+            title,
+            value: 0,
+            owner: "Sam",
+            stageId: stages[0]!.id,
+          }),
+        ),
+      ),
+    );
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect((await as(viewer, () => getPipeline(org))).deals).toHaveLength(500);
+    await pool.query(
+      "DELETE FROM crm_deals WHERE org_id=$1 AND (title LIKE 'Filler %' OR title LIKE 'Last card')",
+      [org],
+    );
+  });
+  it("refuses a note once the workspace's notes reach their byte limit", async () => {
+    const person = (await as(own, () => getContacts(org))).contacts[0]!;
+    // Rows of 3.5 MiB of notes each, made inside Postgres, push the workspace past 16 MiB.
+    await pool.query(
+      `INSERT INTO crm_contact_rows(id,org_id,owner_id,kind,name,notes)
+       SELECT gen_random_uuid(),$1,$2,'person','Heavy '||i,
+         jsonb_build_array(jsonb_build_object('text',repeat('x',3670016),'at','')) FROM generate_series(1,5) i`,
+      [org, own],
+    );
+    try {
+      await expect(
+        as(own, () =>
+          updateContacts(org, {
+            action: "note",
+            id: person.id,
+            revision: person.revision,
+            note: "One more",
+          }),
+        ),
+      ).rejects.toThrow(/full/);
+    } finally {
+      await pool.query("DELETE FROM crm_contact_rows WHERE org_id=$1 AND name LIKE 'Heavy %'", [
+        org,
+      ]);
+    }
   });
   it("does not replace a document when it exceeds the byte limit", async () => {
     const before = await as(own, () => store.readData("records", org, { records: [] }));

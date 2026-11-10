@@ -11,7 +11,10 @@ export async function GET(request: Request) {
       `SELECT m.user_id AS id,u.email,m.role FROM crm_members m JOIN app_users u ON u.id=m.user_id WHERE m.org_id=$1 ORDER BY m.role,u.email`,
       [m.org_id],
     );
-    return reply({ workspace: { name: m.name, role: m.role }, members: members.rows });
+    return reply({
+      workspace: { name: m.name, role: m.role, onePerson: m.one_person },
+      members: members.rows,
+    });
   });
 }
 export async function POST(request: Request) {

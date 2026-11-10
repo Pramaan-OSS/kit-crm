@@ -6,3 +6,4 @@ node_modules/
 .env*
 *.tsbuildinfo
 next-env.d.ts
+app/routes.generated.ts

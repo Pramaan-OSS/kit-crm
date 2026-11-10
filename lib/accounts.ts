@@ -1,14 +1,7 @@
-import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, randomUUID, scrypt, timingSafeEqual } from "node:crypto";
 import { isIP } from "node:net";
 import type { Pool } from "pg";
 import type { Mailer } from "./email";
-import {
-  hashResetPassword,
-  PasswordResetError,
-  resetPasswordNeedsUpgrade,
-  verifyAndUpgradeResetPassword,
-  verifyResetPassword,
-} from "./password";
 
 // The owner has no email until they choose one in the owner area.
 export type User = { id: string; email: string | null; role: string };
@@ -74,9 +67,34 @@ export function clientOf(request: Request): string {
   if (isIP(address) === 6) return `${prefix64(address.toLowerCase())}::/64`;
   return "unknown";
 }
-export const hashPassword = hashResetPassword;
-export const verifyPassword = verifyResetPassword;
-const DUMMY_PASSWORD = `scrypt$N=131072,r=8,p=1$${"0".repeat(32)}$${"0".repeat(128)}`;
+let passwordWork = 0;
+async function derive(password: string, salt: string): Promise<Buffer> {
+  if (passwordWork >= 4) throw new AccountError(429, "Please wait a moment and try again.");
+  passwordWork++;
+  try {
+    return await new Promise((resolve, reject) =>
+      scrypt(
+        password,
+        salt,
+        64,
+        { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 },
+        (error, key) => (error ? reject(error) : resolve(key)),
+      ),
+    );
+  } finally {
+    passwordWork--;
+  }
+}
+export async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  return `scrypt:${salt}:${(await derive(password, salt)).toString("hex")}`;
+}
+export async function verifyPassword(password: string, encoded: string) {
+  const [, salt, hex] = /^scrypt:([a-f0-9]{32}):([a-f0-9]{128})$/u.exec(encoded) ?? [];
+  if (!salt || !hex) return false;
+  return timingSafeEqual(await derive(password, salt), Buffer.from(hex, "hex"));
+}
+const DUMMY_PASSWORD = `scrypt:${"0".repeat(32)}:${"0".repeat(128)}`;
 /** How long an email confirmation link works. */
 const VERIFY_SECONDS = 86400;
 /** How long a password reset link works. */
@@ -509,39 +527,12 @@ export function createAccounts(db: Database, config: AccountConfig) {
           verifyLater(result.rows[0], origin);
           return await signedIn(result.rows[0]);
         }
-        const result = await db.query<User & { password_hash: string | null }>(
+        const result = await db.query<User & { password_hash: string }>(
           "SELECT id,email,role,password_hash FROM app_users WHERE email=$1",
           [email],
         );
         const row = result.rows[0];
-        const valid = row
-          ? await verifyAndUpgradeResetPassword(
-              {
-                async change(id, oldHash, passwordHash) {
-                  // One statement atomically compares the password and revokes existing sessions.
-                  const changed = await db.query(
-                    `WITH changed AS (
-                    UPDATE app_users SET password_hash=$3 WHERE id=$1 AND password_hash=$2 RETURNING id
-                  ), sessions AS (DELETE FROM app_sessions WHERE user_id IN (SELECT id FROM changed)), proofs AS (DELETE FROM app_password_resets WHERE user_id IN (SELECT id FROM changed))
-                  SELECT id FROM changed`,
-                    [id, oldHash, passwordHash],
-                  );
-                  // Another sign-in or a reset changed the hash after it was read: the password was right
-                  // for the old one, so ask for a retry rather than calling it incorrect.
-                  if (changed.rows.length !== 1)
-                    throw new AccountError(409, "Please wait a moment and try again.");
-                  return true;
-                },
-              },
-              { id: row.id, email: row.email ?? "", passwordHash: row.password_hash ?? "" },
-              password,
-            )
-          : await verifyResetPassword(password, DUMMY_PASSWORD);
-        // A refused older or unreadable hash cost less than a strong derive; add one so the time never tells such
-        // an account apart from an unknown email. ponytail: still about 1/8 slower than an unknown email until
-        // every old hash is upgraded.
-        if (row && !valid && resetPasswordNeedsUpgrade(row.password_hash ?? ""))
-          await verifyResetPassword(password, DUMMY_PASSWORD);
+        const valid = await verifyPassword(password, row?.password_hash ?? DUMMY_PASSWORD);
         if (!row || !valid) throw new AccountError(401, "Email or password is incorrect.");
         return await signedIn({ id: row.id, email: row.email, role: row.role });
       }
@@ -590,7 +581,7 @@ export function createAccounts(db: Database, config: AccountConfig) {
       }
       throw new AccountError(404, "Action not found.");
     } catch (error) {
-      return error instanceof AccountError || error instanceof PasswordResetError
+      return error instanceof AccountError
         ? json({ error: error.message }, error.status)
         : json({ error: "Something went wrong. Please try again." }, 503);
     }

@@ -1,6 +1,6 @@
 {
   "id": "crm",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "title": "CRM and team workspace",
   "summary": "Shared people and companies, deals and sprint tasks, team access and internal notes in one workspace.",
   "category": "crm",
@@ -61,7 +61,7 @@
       "route": "/board",
       "file": "app/board/page.tsx",
       "audience": "member",
-      "summary": "Move deals and sprint tasks through New, In progress and Won."
+      "summary": "Move deals and sprint tasks through the workspace's own stages, New, In progress and Won to begin with."
     },
     {
       "route": "/records",
@@ -192,7 +192,7 @@
     "Going live needs a platform live database, off by default.",
     "Attachments, email invites, reminders, external connections and imports need platform capabilities.",
     "One organisation per account; no organisation switching, ownership transfer or organisation deletion.",
-    "Board owners are text labels, not account assignments; no due dates or sprint periods.",
+    "Board owners are text labels, not account assignments; deals have an optional renewal date but no sprint periods.",
     "No payments, subscriptions, outbound messages or vendor connections."
   ],
   "protectedPaths": [
