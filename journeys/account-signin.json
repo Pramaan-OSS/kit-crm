@@ -5,7 +5,7 @@
       "label": "Signs in to an existing team account.",
       "steps": [
         {
-          "enterAs": "visitor"
+          "enterAs": "member"
         },
         {
           "goto": "/"
@@ -58,7 +58,7 @@
           "expectText": "teammate@example.test"
         },
         {
-          "enterAs": "visitor"
+          "enterAs": "member"
         },
         {
           "goto": "/"
