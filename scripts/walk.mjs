@@ -1,7 +1,14 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
-import { chromium, expect } from "@playwright/test";
+import { pathToFileURL } from "node:url";
 import { Pool } from "pg";
+
+// The kit carries the starter's package.json, which has no browser tools: point WALK_BROWSER_MODULE at an installed
+// @playwright/test (its index.mjs) to run this walk.
+const browserModule = process.env.WALK_BROWSER_MODULE;
+const { chromium, expect } = await import(
+  browserModule ? pathToFileURL(browserModule).href : "@playwright/test"
+);
 
 const config = JSON.parse(await readFile(".evidence/runtime.json", "utf8"));
 if (new URL(config.origin).port !== "3410") throw Error("Walk must use port 3410");

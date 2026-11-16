@@ -51,6 +51,6 @@ Password reset and verification links need the email module and configured sende
 
 ## Checks and limits
 
-pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile; pnpm check; pnpm walk. scripts/check-contract.mjs calls the platform's actual contract, licence, secrets and packages gates. The local Postgres tests are part of pnpm test, which the platform runs inside its test gate. scripts/check-blocks.mjs verifies source hashes and migration adaptations against the recorded local repositories.
+pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile; pnpm check; node scripts/walk.mjs. scripts/check-contract.mjs calls the platform's actual contract, licence, secrets and packages gates. The local Postgres tests are part of pnpm test, which the platform runs inside its test gate. scripts/check-blocks.mjs verifies source hashes and migration adaptations against the recorded local repositories.
 
 Measurements and gate verdicts belong in kit-ci.json. A local run without the platform's verified install network and hosted run address cannot make this kit available in the catalogue. Never mark that record green on partial evidence. Docker is shared; remove only this lane's named test database and never prune.
