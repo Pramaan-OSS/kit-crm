@@ -107,7 +107,7 @@ try {
     (
       await viewer.request.post("/api/account/signin", {
         headers: { origin: config.origin },
-        data: { email: "teammate@example.test", password: "Workspace check 2026" },
+        data: { email: "delivered+crm-teammate@resend.dev", password: "Workspace check 2026" },
       })
     ).ok(),
   ).toBe(true);
@@ -160,7 +160,7 @@ try {
     (
       await foreign.request.post("/api/account/signup", {
         headers: { origin: config.origin },
-        data: { email: "another-team@example.test", password: "Workspace check 2026" },
+        data: { email: "delivered+crm-another-team@resend.dev", password: "Workspace check 2026" },
       })
     ).ok(),
   ).toBe(true);

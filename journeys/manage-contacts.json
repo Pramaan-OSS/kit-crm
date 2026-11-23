@@ -42,7 +42,7 @@
         },
         {
           "fill": "Email",
-          "value": "sam@example.test"
+          "value": "delivered+crm-sam-2@resend.dev"
         },
         {
           "select": "Company",

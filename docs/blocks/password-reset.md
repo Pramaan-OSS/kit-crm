@@ -149,7 +149,7 @@ private app email module so reset links stay out of approval requests.
 
 ## Demo and checks
 
-With `PRAMAAN_FAKE=1`, `/password-reset` uses an in-memory sample account (`sam@example.com`,
+With `PRAMAAN_FAKE=1`, `/password-reset` uses an in-memory sample account (`delivered+crm-sam@resend.dev`,
 initial password `Starting password 42`) and a private in-memory mailbox. Choose **Check sample
 mail** to open its messages; no reset secret goes into the shared approvals fake. No real email is sent. The
 sample mailbox and sign-in test endpoint return 404 outside fake mode; they are not registry

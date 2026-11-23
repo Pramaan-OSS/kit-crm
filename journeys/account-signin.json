@@ -15,7 +15,7 @@
         },
         {
           "fill": "Email",
-          "value": "teammate@example.test"
+          "value": "delivered+crm-teammate@resend.dev"
         },
         {
           "fill": "Password",
@@ -25,7 +25,7 @@
           "click": "Create account"
         },
         {
-          "expectText": "Signed in as teammate@example.test."
+          "expectText": "Signed in as delivered+crm-teammate@resend.dev."
         },
         {
           "enterAs": "owner"
@@ -45,7 +45,7 @@
         },
         {
           "fill": "Teammate email",
-          "value": "teammate@example.test"
+          "value": "delivered+crm-teammate@resend.dev"
         },
         {
           "select": "Access",
@@ -55,7 +55,7 @@
           "click": "Save access"
         },
         {
-          "expectText": "teammate@example.test"
+          "expectText": "delivered+crm-teammate@resend.dev"
         },
         {
           "enterAs": "member"
@@ -65,7 +65,7 @@
         },
         {
           "fill": "Email",
-          "value": "teammate@example.test"
+          "value": "delivered+crm-teammate@resend.dev"
         },
         {
           "fill": "Password",
@@ -75,7 +75,7 @@
           "click": "Sign in"
         },
         {
-          "expectText": "Signed in as teammate@example.test."
+          "expectText": "Signed in as delivered+crm-teammate@resend.dev."
         },
         {
           "goto": "/team"
